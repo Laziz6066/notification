@@ -12,6 +12,7 @@ from app.services.scheduler import schedule_jobs
 bot_token = os.getenv("BOT_TOKEN")
 bot = Bot(token=bot_token)
 
+
 async def main():
     await async_main()
     load_dotenv()

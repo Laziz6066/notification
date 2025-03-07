@@ -5,6 +5,8 @@ from aiogram.filters import Command
 from app.db.models import async_session
 from app.db.models import ReturnRequest
 from sqlalchemy import select
+import logging
+from app.db.requests import get_pending_requests
 
 router = Router()
 
@@ -33,3 +35,27 @@ async def process_order_number(message: Message):
                 await message.answer("Статус товара обновлен!")
             else:
                 await message.answer("Заказ не найден")
+
+
+@router.message(F.text == "Просмотр")
+async def send_daily_report(message: Message):
+    try:
+        requests = await get_pending_requests()
+        if not requests:
+            return
+
+        text = "⚠️ *Напоминаем что эти товары не поступили в ПВЗ:*\n\n"
+        for req in requests:
+            text += (
+                f"📦 Номер заказа: `{req.order_number}`\n"
+                f"📅 Дата приема: {req.admission_date}\n"
+                f"🛍️ Товар: {req.product_name}\n"
+                f"🟥 Причина возврата: {req.return_reason}\n\n"
+            )
+
+        await message.answer(
+            text=text,
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logging.error(f"Error sending daily report: {str(e)}")

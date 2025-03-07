@@ -33,3 +33,5 @@ async def get_pending_requests() -> list[ReturnRequest]:
         result = await session.execute(
             select(ReturnRequest).where(ReturnRequest.is_arrived == False))
         return result.scalars().all()
+
+
