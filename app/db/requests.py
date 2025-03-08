@@ -10,10 +10,9 @@ async def add_request(
         order_number: str,
         order_date: date,
         product_name: str,
-        admission_date: date,
         return_reason: str
 ):
-    logging.info(f"Добавление запроса: {order_number}\n, {order_date}\n, {product_name}\n, {admission_date}\n, "
+    logging.info(f"Добавление запроса: {order_number}\n, {order_date}\n, {product_name}\n, "
                  f"{return_reason}")
 
     async with async_session() as session:
@@ -21,7 +20,6 @@ async def add_request(
             order_number=order_number,
             order_date=order_date,
             product_name=product_name,
-            admission_date=admission_date,
             return_reason=return_reason
         )
         session.add(item)

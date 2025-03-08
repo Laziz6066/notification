@@ -105,7 +105,6 @@ async def handle_text(message: types.Message):
         f"📦 Номер заказа: `{extracted_data['order_id']}`\n"
         f"📅 Дата заказа: `{extracted_data.get('order_date', 'не указана')}`\n"
         f"🛍️ Товар: _{extracted_data.get('product_name', 'не указан')}_\n"
-        f"📅 Дата приема: `{extracted_data.get('acceptance_date', 'не указана')}`\n"
         f"🔧 Причина: _{extracted_data.get('reason', 'не указана')}_\n"
         f"⏳ Дедлайн: `{extracted_data.get('deadline', 'не указан')}`"
     )
@@ -115,7 +114,6 @@ async def handle_text(message: types.Message):
             order_number=extracted_data['order_id'],
             order_date=order_date,
             product_name=extracted_data.get('product_name', 'не указан'),
-            admission_date=admission_date,
             return_reason=extracted_data.get('reason', 'не указана')
         )
         await message.reply(response, parse_mode="Markdown")

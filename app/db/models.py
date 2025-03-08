@@ -20,7 +20,6 @@ class ReturnRequest(Base):
     order_number = Column(String, unique=True)
     order_date = Column(Date)
     product_name = Column(String)
-    admission_date = Column(Date)
     return_reason = Column(String)
     is_arrived = Column(Boolean, default=False)
 
