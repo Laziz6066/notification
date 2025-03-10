@@ -15,7 +15,7 @@ async def schedule_jobs(bot: Bot):
     # Ежедневно в 9:00, кроме воскресенья (0 - воскресенье, 1-6 - понедельник-суббота)
     scheduler.add_job(
         send_daily_report,
-        trigger=CronTrigger(day_of_week="mon-sat", hour=10, minute=30),
+        trigger=CronTrigger(day_of_week="mon-sat", hour=11, minute=5),
         args=(bot,),
         name="daily_report"
     )
@@ -33,7 +33,7 @@ async def send_daily_report(bot: Bot):
         for req in requests:
             message += (
                 f"📦 Номер заказа: `{req.order_number}`\n"
-                f"📅 Дата приема: {req.admission_date}\n"
+                f"📅 Дата приема: {req.order_date}\n"
                 f"🛍️ Товар: {req.product_name}\n"
                 f"🟥 Причина возврата: {req.return_reason}\n\n"
             )
