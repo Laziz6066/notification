@@ -10,12 +10,11 @@ group_id = os.getenv("GROUP_ID")
 
 
 async def schedule_jobs(bot: Bot):
-    scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+    scheduler = AsyncIOScheduler(timezone="Asia/Tashkent")
 
-    # Ежедневно в 9:00, кроме воскресенья (0 - воскресенье, 1-6 - понедельник-суббота)
     scheduler.add_job(
         send_daily_report,
-        trigger=CronTrigger(day_of_week="mon-sat", hour=11, minute=30),
+        trigger=CronTrigger(day_of_week="mon-sat", hour=9, minute=15),
         args=(bot,),
         name="daily_report"
     )
