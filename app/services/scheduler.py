@@ -15,7 +15,7 @@ async def schedule_jobs(bot: Bot):
     # Ежедневно в 9:00, кроме воскресенья (0 - воскресенье, 1-6 - понедельник-суббота)
     scheduler.add_job(
         send_daily_report,
-        trigger=CronTrigger(day_of_week="mon-sat", hour=11, minute=5),
+        trigger=CronTrigger(day_of_week="mon-sat", hour=11, minute=30),
         args=(bot,),
         name="daily_report"
     )
