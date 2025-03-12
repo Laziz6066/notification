@@ -14,10 +14,25 @@ async def schedule_jobs(bot: Bot):
 
     scheduler.add_job(
         send_daily_report,
-        trigger=CronTrigger(day_of_week="mon-sat", hour=9, minute=15),
+        trigger=CronTrigger(day_of_week="mon-sat", hour=4, minute=0),
         args=(bot,),
-        name="daily_report"
+        name="daily_report_morning"
     )
+
+    scheduler.add_job(
+        send_daily_report,
+        trigger=CronTrigger(day_of_week="mon-sat", hour=9, minute=0),
+        args=(bot,),
+        name="daily_report_noon"
+    )
+
+    scheduler.add_job(
+        send_daily_report,
+        trigger=CronTrigger(day_of_week="mon-sat", hour=13, minute=0),
+        args=(bot,),
+        name="daily_report_afternoon"
+    )
+
 
     scheduler.start()
     logging.info("Scheduler started")
