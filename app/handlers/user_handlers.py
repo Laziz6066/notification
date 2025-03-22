@@ -118,7 +118,7 @@ async def handle_text(message: types.Message):
             product_name=extracted_data['product_name'],
             return_reason=extracted_data['reason']
         )
-        await message.reply(response)  # Отправляем извлеченные данные пользователю
+          # Отправляем извлеченные данные пользователю
     except Exception as e:
         logging.error(f"Database error: {str(e)}")
         await message.reply("❌ Произошла ошибка при сохранении данных")
