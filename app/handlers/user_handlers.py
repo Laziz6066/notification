@@ -20,7 +20,6 @@ def parse_structured_text(text: str) -> dict:
 
     # Поиск всех дат в тексте
     date_pattern = r"\b\d{2}\.\d{2}\.\d{4}\b"
-    dates = re.findall(date_pattern, text)
 
     # Основные паттерны
     order_pattern = re.compile(
@@ -33,24 +32,30 @@ def parse_structured_text(text: str) -> dict:
             match = order_pattern.search(line)
             if match:
                 data["order_id"] = match.group("order_id")
-                if match.group("order_date"):
-                    data["order_date"] = match.group("order_date")
+                print(f"Номер заказа найден: {data['order_id']}")  # Отладочное сообщение
+            else:
+                print(f"Номер заказа не найден в строке: {line}")  # Отладочное сообщение
             continue
 
-        if "дата приема" in line.lower() and not data.get("acceptance_date"):
+        # Извлечение даты приема
+        if "дата приема" in line.lower():
             date_match = re.search(date_pattern, line)
             if date_match:
                 data["acceptance_date"] = date_match.group()
+                print(f"Дата приема найдена: {data['acceptance_date']}")  # Отладочное сообщение
+            else:
+                print(f"Дата приема не найдена в строке: {line}")  # Отладочное сообщение
 
+        # Извлечение причины возврата
         if "Причина возврата:" in line:
             reason_match = re.search(r'"([^"]+)"', line)
             if reason_match:
                 data["reason"] = reason_match.group(1)
-
-        if "сообщить до" in line.lower() and not data.get("deadline"):
-            date_match = re.search(date_pattern, line)
-            if date_match:
-                data["deadline"] = date_match.group()
+                print(f"Причина возврата найдена: {data['reason']}", len(data['reason']))  # Отладочное сообщение
+                if len(data['reason']) < 5:
+                    data["reason"] = "Не удалось извлечь данные из-за изменения структуры сообщения!"
+            else:
+                print(f"Причина возврата не найдена в строке: {line}")  # Отладочное сообщение
 
     # Сбор названия товара
     product_lines = []
@@ -68,12 +73,9 @@ def parse_structured_text(text: str) -> dict:
 
     if product_lines:
         data["product_name"] = " ".join(product_lines).strip()
-
-    # Автозаполнение недостающих дат из общего поиска
-    if not data.get("order_date") and len(dates) > 0:
-        data["order_date"] = dates[0]
-    if not data.get("acceptance_date") and len(dates) > 1:
-        data["acceptance_date"] = dates[1]
+        print(f"Наименование товара найдено: {data['product_name']}")  # Отладочное сообщение
+    else:
+        data["product_name"] =  "Не удалось извлечь данные из-за изменения структуры сообщения!"
 
     return data
 
@@ -87,36 +89,36 @@ async def handle_text(message: types.Message):
     extracted_data = parse_structured_text(text)
 
     # Валидация обязательных полей
-    required_fields = ['order_id', 'order_date', 'acceptance_date']
+    required_fields = ['order_id', 'acceptance_date', 'reason']
     if not all(extracted_data.get(field) for field in required_fields):
-        await message.reply("❌ В сообщении отсутствуют обязательные данные: номер заказа, дата заказа или дата приема")
+        await message.reply("❌ В сообщении отсутствуют обязательные данные: номер заказа,"
+                            " дата приема, товар или причина возврата")
         return
 
     try:
-        order_date = datetime.strptime(extracted_data['order_date'], "%d.%m.%Y").date()
-        admission_date = datetime.strptime(extracted_data['acceptance_date'], "%d.%m.%Y").date()
+        acceptance_date = datetime.strptime(extracted_data['acceptance_date'], "%d.%m.%Y").date()
     except ValueError as e:
         await message.reply(f"❌ Ошибка формата даты: {str(e)}")
         return
 
+
     # Формирование ответа
     response = (
         "**Извлеченные данные:**\n"
-        f"📦 Номер заказа: `{extracted_data['order_id']}`\n"
-        f"📅 Дата заказа: `{extracted_data.get('order_date', 'не указана')}`\n"
-        f"🛍️ Товар: _{extracted_data.get('product_name', 'не указан')}_\n"
-        f"🔧 Причина: _{extracted_data.get('reason', 'не указана')}_\n"
-        f"⏳ Дедлайн: `{extracted_data.get('deadline', 'не указан')}`"
+        f"📦 Номер заказа: {extracted_data['order_id']}\n"
+        f"📅 Дата приема: {extracted_data['acceptance_date']}\n"
+        f"🛍️ Товар: {extracted_data.get('product_name', 'не найдено')}\n"
+        f"🔧 Причина: {extracted_data['reason']}"
     )
 
     try:
         await add_request(
             order_number=extracted_data['order_id'],
-            order_date=order_date,
-            product_name=extracted_data.get('product_name', 'не указан'),
-            return_reason=extracted_data.get('reason', 'не указана')
+            order_date=acceptance_date,  # Используем дату приема как дату заказа
+            product_name=extracted_data['product_name'],
+            return_reason=extracted_data['reason']
         )
-
+        await message.reply(response)  # Отправляем извлеченные данные пользователю
     except Exception as e:
         logging.error(f"Database error: {str(e)}")
         await message.reply("❌ Произошла ошибка при сохранении данных")

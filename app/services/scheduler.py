@@ -49,7 +49,7 @@ async def send_daily_report(bot: Bot):
                 f"📦 Номер заказа: `{req.order_number}`\n"
                 f"📅 Дата приема: {req.order_date}\n"
                 f"🛍️ Товар: {req.product_name}\n"
-                f"🟥 Причина возврата: {req.return_reason}\n\n"
+                f"🔧 Причина возврата: {req.return_reason}\n\n"
             )
 
         await bot.send_message(
