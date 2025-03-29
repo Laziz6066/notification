@@ -9,7 +9,7 @@ from app.db.models import ReturnRequest
 from sqlalchemy import select
 import logging
 from app.db.requests import get_pending_requests, add_request
-from app.config import ADMINS
+from app.config import ADMINS, ADMIN
 from aiogram.fsm.context import FSMContext
 
 
@@ -23,7 +23,7 @@ async def start_handler(message: Message):
 
 @router.message(F.text == "Добавить")
 async def add_order(message: Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
+    if message.from_user.id in ADMIN:
 
         await state.set_state(AddOrder.order_number)
         await message.answer("№ заказа:")
@@ -71,23 +71,25 @@ async def order_reason(message: Message, state: FSMContext):
 
 @router.message(F.text == "Приемка")
 async def start_acceptance(message: Message):
-    await message.answer("Введите номер заказа:")
+    if message.from_user.id in ADMIN:
+        await message.answer("Введите номер заказа:")
 
 
 @router.message(F.text.regexp(r'^\d+$'))
 async def process_order_number(message: Message):
-    async with async_session() as session:
-        async with session.begin():
-            result = await session.execute(
-                select(ReturnRequest).where(ReturnRequest.order_number == message.text)
-            )
-            request = result.scalars().first()
+    if message.from_user.id in ADMIN:
+        async with async_session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    select(ReturnRequest).where(ReturnRequest.order_number == message.text)
+                )
+                request = result.scalars().first()
 
-            if request:
-                request.is_arrived = True
-                await message.answer("Статус товара обновлен!")
-            else:
-                await message.answer("Заказ не найден")
+                if request:
+                    request.is_arrived = True
+                    await message.answer("Статус товара обновлен!")
+                else:
+                    await message.answer("Заказ не найден")
 
 
 @router.message(F.text == "Просмотр")

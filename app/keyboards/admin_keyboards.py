@@ -1,5 +1,5 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
-from app.config import ADMINS
+from app.config import ADMINS, ADMIN
 
 
 async def get_main_keyboard(user_id: int) -> ReplyKeyboardMarkup:
@@ -8,7 +8,7 @@ async def get_main_keyboard(user_id: int) -> ReplyKeyboardMarkup:
         buttons = [
             [KeyboardButton(text='Просмотр')],
             [KeyboardButton(text='Приемка')],
-            [KeyboardButton(text='Добавить')],
         ]
-
+        if user_id in ADMIN:
+            buttons.insert(__index=1, __object=[KeyboardButton(text='Добавить')])
         return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
