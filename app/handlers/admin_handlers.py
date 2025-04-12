@@ -23,7 +23,7 @@ async def start_handler(message: Message):
 
 @router.message(F.text == "Добавить")
 async def add_order(message: Message, state: FSMContext):
-    if message.from_user.id in ADMIN:
+    if message.from_user.id == ADMIN:
 
         await state.set_state(AddOrder.order_number)
         await message.answer("№ заказа:")
@@ -71,13 +71,13 @@ async def order_reason(message: Message, state: FSMContext):
 
 @router.message(F.text == "Приемка")
 async def start_acceptance(message: Message):
-    if message.from_user.id in ADMIN:
+    if message.from_user.id in ADMINS:
         await message.answer("Введите номер заказа:")
 
 
 @router.message(F.text.regexp(r'^\d+$'))
 async def process_order_number(message: Message):
-    if message.from_user.id in ADMIN:
+    if message.from_user.id in ADMINS:
         async with async_session() as session:
             async with session.begin():
                 result = await session.execute(
