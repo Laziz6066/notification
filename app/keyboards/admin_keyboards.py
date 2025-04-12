@@ -9,6 +9,6 @@ async def get_main_keyboard(user_id: int) -> ReplyKeyboardMarkup:
             [KeyboardButton(text='Просмотр')],
             [KeyboardButton(text='Приемка')],
         ]
-        if user_id in ADMIN:
+        if user_id == ADMIN:
             buttons.insert(__index=1, __object=[KeyboardButton(text='Добавить')])
         return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
