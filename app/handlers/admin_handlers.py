@@ -139,8 +139,7 @@ async def generate_report(message: Message):
             "Номер заказа": req.order_number,
             "Дата приёма": req.order_date.strftime("%d.%m.%Y"),
             "Товар": req.product_name,
-            "Причина возврата": req.return_reason,
-            "Дата прибытия": datetime.now().strftime("%d.%m.%Y %H:%M")
+            "Причина возврата": req.return_reason
         } for req in requests])
 
         # Создаем Excel файл в памяти
