@@ -20,15 +20,13 @@ router = Router()
 async def start_handler(message: Message):
     await message.answer("Выберите действие:", reply_markup=await get_main_keyboard(message.from_user.id))
 
-
 @router.message(F.text == "Добавить")
 async def add_order(message: Message, state: FSMContext):
     if message.from_user.id == ADMIN:
-
         await state.set_state(AddOrder.order_number)
         await message.answer("№ заказа:")
     else:
-        await message.answer("У вас нет доступа !!!")
+        await message.answer("У вас нет доступа!!!")
 
 
 @router.message(AddOrder.order_number)
@@ -70,26 +68,32 @@ async def order_reason(message: Message, state: FSMContext):
 
 
 @router.message(F.text == "Приемка")
+@router.message(F.from_user.id.in_(ADMINS))
 async def start_acceptance(message: Message):
-    if message.from_user.id in ADMINS:
-        await message.answer("Введите номер заказа:")
+    await message.answer("Введите номер заказа:")
 
 
-@router.message(F.text.regexp(r'^\d+$'))
+@router.message(F.text.regexp(r'^[\w№\s]+$'), F.from_user.id.in_(ADMINS))
 async def process_order_number(message: Message):
-    if message.from_user.id in ADMINS:
-        async with async_session() as session:
+    async with async_session() as session:
+        try:
             async with session.begin():
                 result = await session.execute(
-                    select(ReturnRequest).where(ReturnRequest.order_number == message.text)
+                    select(ReturnRequest)
+                    .where(ReturnRequest.order_number == message.text)
+                    .with_for_update()
                 )
                 request = result.scalars().first()
 
                 if request:
                     request.is_arrived = True
+                    await session.commit()
                     await message.answer("Статус товара обновлен!")
                 else:
                     await message.answer("Заказ не найден")
+        except Exception as e:
+            logging.error(f"Error updating order: {str(e)}")
+            await message.answer("Ошибка при обновлении статуса")
 
 
 @router.message(F.text == "Просмотр")
