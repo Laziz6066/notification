@@ -70,12 +70,11 @@ async def order_reason(message: Message, state: FSMContext):
 
 
 @router.message(F.text == "Приемка")
-@router.message(F.from_user.id.in_(ADMINS))
 async def start_acceptance(message: Message):
     await message.answer("Введите номер заказа:")
 
 
-@router.message(F.text.regexp(r'^[\w№\s]+$'), F.from_user.id.in_(ADMINS))
+@router.message(F.text.regexp(r'^\d{5,}$'), F.from_user.id.in_(ADMINS))
 async def process_order_number(message: Message):
     async with async_session() as session:
         try:
