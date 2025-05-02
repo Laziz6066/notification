@@ -16,6 +16,7 @@ async def add_request(
         product_name: str,
         return_reason: str,
 ) -> None:
+
     max_retries = 3
     base_number = order_number.split()[0]
 
@@ -56,4 +57,13 @@ async def get_pending_requests() -> list[ReturnRequest]:
         result = await session.execute(
             select(ReturnRequest).where(ReturnRequest.is_arrived.is_(False))
         )
+        return list(result.scalars())
+
+
+# app/db/requests.py (добавить новую функцию)
+async def get_arrived_requests() -> list[ReturnRequest]:
+    """Получить все прибывшие заказы (is_arrived = True)."""
+    async with async_session() as session:
+        result = await session.execute(
+            select(ReturnRequest).where(ReturnRequest.is_arrived.is_(True)))
         return list(result.scalars())
