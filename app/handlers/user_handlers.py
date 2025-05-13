@@ -11,73 +11,82 @@ router = Router()
 
 def parse_structured_text(text: str) -> dict:
     data = {}
-    text = text.replace("\xa0", " ").replace("\r", "")  # Очистка от специальных символов
+    text = text.replace("\xa0", " ").replace("\r", "")
     lines = [line.strip() for line in text.split("\n") if line.strip()]
 
-    # Проверка ключевой фразы для активации парсинга
     if "Принят товар – на возврат" not in text:
         return {}
 
-    # Поиск всех дат в тексте
-    date_pattern = r"\b\d{2}\.\d{2}\.\d{4}\b"
+    # Поддержка дат формата d.m.yyyy и dd.mm.yyyy
+    date_pattern = r"\b\d{1,2}\.\d{1,2}\.\d{4}\b"
 
-    # Основные паттерны
+    # Заказ: номер, дата, возможно — товар в той же строке
     order_pattern = re.compile(
-        r"Заказ №\s*(?P<order_id>[^\s]+)\s*(?P<order_date>\d{2}\.\d{2}\.\d{4})?"
+        r"Заказ №\s*(?P<order_id>[^\s]+)\s+(?P<order_date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<product_name>.+)?"
     )
 
-    # Поиск информации о заказе
     for line in lines:
         if "Заказ №" in line:
             match = order_pattern.search(line)
             if match:
                 data["order_id"] = match.group("order_id")
-                print(f"Номер заказа найден: {data['order_id']}")  # Отладочное сообщение
+                print(f"Номер заказа найден: {data['order_id']}")
+
+                if match.group("order_date"):
+                    data["order_date"] = match.group("order_date")
+                    print(f"Дата заказа найдена: {data['order_date']}")
+
+                if match.group("product_name"):
+                    data["product_name"] = match.group("product_name").strip()
+                    print(f"Наименование товара найдено в строке заказа: {data['product_name']}")
             else:
-                print(f"Номер заказа не найден в строке: {line}")  # Отладочное сообщение
+                print(f"Номер заказа не найден в строке: {line}")
             continue
 
-        # Извлечение даты приема
         if "дата приема" in line.lower():
             date_match = re.search(date_pattern, line)
             if date_match:
                 data["acceptance_date"] = date_match.group()
-                print(f"Дата приема найдена: {data['acceptance_date']}")  # Отладочное сообщение
+                print(f"Дата приема найдена: {data['acceptance_date']}")
             else:
-                print(f"Дата приема не найдена в строке: {line}")  # Отладочное сообщение
+                print(f"Дата приема не найдена в строке: {line}")
 
-        # Извлечение причины возврата
         if "Причина возврата:" in line:
-            reason_match = re.search(r'"([^"]+)"', line)
+            # Причина с кавычками или без
+            reason_match = re.search(r'Причина возврата:\s*(?:"([^"]+)"|(.*))', line)
             if reason_match:
-                data["reason"] = reason_match.group(1)
-                print(f"Причина возврата найдена: {data['reason']}", len(data['reason']))  # Отладочное сообщение
-                if len(data['reason']) < 5:
-                    data["reason"] = "Не удалось извлечь данные из-за изменения структуры сообщения!"
+                reason = reason_match.group(1) or reason_match.group(2)
+                reason = reason.strip()
+                if len(reason) < 5:
+                    reason = "Не удалось извлечь данные из-за изменения структуры сообщения!"
+                data["reason"] = reason
+                print(f"Причина возврата найдена: {data['reason']}")
             else:
-                print(f"Причина возврата не найдена в строке: {line}")  # Отладочное сообщение
+                print(f"Причина возврата не найдена в строке: {line}")
 
-    # Сбор названия товара
-    product_lines = []
-    collect_product = False
-    for line in lines:
-        if "Заказ №" in line:
-            collect_product = True
-            continue
+    # Если product_name не удалось извлечь из строки заказа — пробуем старым способом
+    if "product_name" not in data:
+        product_lines = []
+        collect_product = False
+        for line in lines:
+            if "Заказ №" in line:
+                collect_product = True
+                continue
 
-        if collect_product and any(key in line for key in ["Причина возврата:", "Клиента интересует:"]):
-            break
+            if collect_product and any(key in line for key in ["Причина возврата:", "Клиента интересует:"]):
+                break
 
-        if collect_product:
-            product_lines.append(line)
+            if collect_product:
+                product_lines.append(line)
 
-    if product_lines:
-        data["product_name"] = " ".join(product_lines).strip()
-        print(f"Наименование товара найдено: {data['product_name']}")  # Отладочное сообщение
-    else:
-        data["product_name"] =  "Не удалось извлечь данные из-за изменения структуры сообщения!"
+        if product_lines:
+            data["product_name"] = " ".join(product_lines).strip()
+            print(f"Наименование товара собрано из следующих строк: {data['product_name']}")
+        else:
+            data["product_name"] = "Не удалось извлечь данные из-за изменения структуры сообщения!"
 
     return data
+
 
 
 @router.message(F.text | F.caption)

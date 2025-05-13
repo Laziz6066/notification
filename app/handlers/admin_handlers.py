@@ -74,17 +74,43 @@ async def start_acceptance(message: Message):
     await message.answer("Введите номер заказа:")
 
 
-@router.message(F.text.regexp(r'^\d{5,}$'), F.from_user.id.in_(ADMINS))
+@router.message(F.text.regexp(r'^\d{5,}( №\d+)?$'), F.from_user.id.in_(ADMINS))
 async def process_order_number(message: Message):
+    user_input = message.text.strip()
+
     async with async_session() as session:
         try:
             async with session.begin():
-                result = await session.execute(
-                    select(ReturnRequest)
-                    .where(ReturnRequest.order_number == message.text)
-                    .with_for_update()
-                )
-                request = result.scalars().first()
+                # 1. Если номер содержит "№" — точный поиск
+                if "№" in user_input:
+                    result = await session.execute(
+                        select(ReturnRequest)
+                        .where(ReturnRequest.order_number == user_input)
+                        .with_for_update()
+                    )
+                    request = result.scalars().first()
+                else:
+                    # 2. Иначе ищем все совпадения по префиксу
+                    result = await session.execute(
+                        select(ReturnRequest)
+                        .where(ReturnRequest.order_number.like(f"{user_input}%"))
+                        .order_by(ReturnRequest.id)
+                        .with_for_update()
+                    )
+                    matched = list(result.scalars())
+
+                    if len(matched) == 0:
+                        await message.answer("Заказ не найден")
+                        return
+                    elif len(matched) > 1:
+                        await message.answer(
+                            f"Найдено несколько заказов с номером `{user_input}`:\n" +
+                            "\n".join(f"🔹 {item.order_number}" for item in matched) +
+                            "\n\nУточните номер (например: `56923329 №2`)", parse_mode="Markdown"
+                        )
+                        return
+                    else:
+                        request = matched[0]
 
                 if request:
                     request.is_arrived = True
