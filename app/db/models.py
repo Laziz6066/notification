@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-engine = create_async_engine(url=os.getenv('POSTGRESQL_2'))
+engine = create_async_engine(url=os.getenv('POSTGRESQL_1'))
 
 async_session = async_sessionmaker(engine, expire_on_commit=False)  # Добавьте expire_on_commit=False
 
