@@ -17,10 +17,8 @@ def parse_structured_text(text: str) -> dict:
     if "Принят товар – на возврат" not in text:
         return {}
 
-    # Поддержка дат формата d.m.yyyy и dd.mm.yyyy
     date_pattern = r"\b\d{1,2}\.\d{1,2}\.\d{4}\b"
 
-    # Заказ: номер, дата, возможно — товар в той же строке
     order_pattern = re.compile(
         r"Заказ №\s*(?P<order_id>[^\s]+)\s+(?P<order_date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<product_name>.+)?"
     )
@@ -52,7 +50,6 @@ def parse_structured_text(text: str) -> dict:
                 print(f"Дата приема не найдена в строке: {line}")
 
         if "Причина возврата:" in line:
-            # Причина с кавычками или без
             reason_match = re.search(r'Причина возврата:\s*(?:"([^"]+)"|(.*))', line)
             if reason_match:
                 reason = reason_match.group(1) or reason_match.group(2)
@@ -64,7 +61,6 @@ def parse_structured_text(text: str) -> dict:
             else:
                 print(f"Причина возврата не найдена в строке: {line}")
 
-    # Если product_name не удалось извлечь из строки заказа — пробуем старым способом
     if "product_name" not in data:
         product_lines = []
         collect_product = False
@@ -97,17 +93,18 @@ async def handle_text(message: types.Message):
 
     extracted_data = parse_structured_text(text)
 
-    # Валидация обязательных полей
     required_fields = ['order_id', 'acceptance_date', 'reason']
     if not all(extracted_data.get(field) for field in required_fields):
-        await message.reply("❌ В сообщении отсутствуют обязательные данные: номер заказа,"
-                            " дата приема, товар или причина возврата")
+        await message.bot.send_message(chat_id=661394290,
+                                       text='❌ В сообщении отсутствуют обязательные '
+                                            'данные: номер заказа, дата приема, '
+                                            'товар или причина возврата')
         return
 
     try:
         acceptance_date = datetime.strptime(extracted_data['acceptance_date'], "%d.%m.%Y").date()
     except ValueError as e:
-        await message.reply(f"❌ Ошибка формата даты: {str(e)}")
+        await message.bot.send_message(661394290, f"❌ Ошибка формата даты: {str(e)}")
         return
 
 
@@ -123,11 +120,10 @@ async def handle_text(message: types.Message):
     try:
         await add_request(
             order_number=extracted_data['order_id'],
-            order_date=acceptance_date,  # Используем дату приема как дату заказа
+            order_date=acceptance_date,
             product_name=extracted_data['product_name'],
             return_reason=extracted_data['reason']
         )
-          # Отправляем извлеченные данные пользователю
     except Exception as e:
         logging.error(f"Database error: {str(e)}")
-        await message.reply("❌ Произошла ошибка при сохранении данных")
+        await message.bot.send_message(661394290, "❌ Произошла ошибка при сохранении данных")
